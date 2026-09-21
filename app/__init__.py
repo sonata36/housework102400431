@@ -6,13 +6,12 @@ from flask import Flask
 from .db import close_db, init_db, get_db
 from .services import seed_demo_data
 
-
 def init_sample_papers():
     db = get_db()
     # 判断是否已经导入数据，避免重复插入
-    count_row = db.execute("SELECT COUNT(*) AS cnt FROM online_papers").fetchone()
-    if count_row["cnt"] > 5:
-        print("数据库已有论文，跳过初始化")
+    count_row = db.execute("SELECT COUNT(*) AS cnt FROM papers").fetchone()
+    if count_row["cnt"] > 0:
+        print("papers表已有论文，跳过初始化")
         db.close()
         return
 
@@ -21,12 +20,12 @@ def init_sample_papers():
         paper_list = json.load(f)
 
     for item in paper_list:
-        # 字段和online_papers表严格对齐
-        db.execute("""
-            INSERT OR IGNORE INTO online_papers
+        # 插入论文到papers主表
+        cur = db.execute("""
+            INSERT OR IGNORE INTO papers
             (title, normalized_title, abstract, authors, conference, year,
-             paper_number, original_url, keywords)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             paper_number, original_url, source, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             item["title"],
             item["normalized_title"],
@@ -36,12 +35,25 @@ def init_sample_papers():
             item["year"],
             item["paper_number"],
             item["original_url"],
-            item["keywords"]
+            "sample",
+            "complete"
         ))
+        paper_id = cur.lastrowid
+
+        # 拆分关键词写入关键词关联表
+        keyword_str = item["keywords"]
+        keyword_list = [k.strip() for k in keyword_str.split(",") if k.strip()]
+        for kw in keyword_list:
+            normalized_kw = kw.lower()
+            db.execute("INSERT OR IGNORE INTO keywords(normalized, display_name) VALUES (?, ?)",
+                       (normalized_kw, kw))
+            kw_row = db.execute("SELECT id FROM keywords WHERE normalized = ?", (normalized_kw,)).fetchone()
+            kw_id = kw_row["id"]
+            db.execute("INSERT OR IGNORE INTO paper_keywords(paper_id, keyword_id, source) VALUES (?, ?, ?)",
+                       (paper_id, kw_id, "extracted"))
     db.commit()
     db.close()
-    print(f"✅ 成功载入 {len(paper_list)} 篇样例论文")
-
+    print(f"✅ 成功载入 {len(paper_list)} 篇样例论文到papers表，同时导入关键词")
 
 def create_app(test_config=None):
     """Create a configured Flask application."""
@@ -54,13 +66,10 @@ def create_app(test_config=None):
             str(project_root / "instance" / "papers.sqlite3"),
         ),
     )
-
     if test_config:
         app.config.update(test_config)
-
     Path(app.config["DATABASE"]).parent.mkdir(parents=True, exist_ok=True)
     app.teardown_appcontext(close_db)
-
     from .routes import pages
     from .paper_routes import papers
     from .import_routes import imports
@@ -88,5 +97,4 @@ def create_app(test_config=None):
     with app.app_context():
         init_db()
         init_sample_papers()
-
     return app
