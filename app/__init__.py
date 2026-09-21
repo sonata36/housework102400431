@@ -3,16 +3,17 @@ import os
 import json
 from pathlib import Path
 from flask import Flask
-from .db import close_db, init_db
+from .db import close_db, init_db, get_db
 from .services import seed_demo_data
-from .models import Paper
-from .db import db
 
 
 def init_sample_papers():
-    cnt = Paper.query.count()
-    if cnt > 0:
+    db = get_db()
+    # 判断是否已经导入数据，避免重复插入
+    count_row = db.execute("SELECT COUNT(*) AS cnt FROM online_papers").fetchone()
+    if count_row["cnt"] > 5:
         print("数据库已有论文，跳过初始化")
+        db.close()
         return
 
     json_path = Path(__file__).parent.parent / "papers_sample.json"
@@ -20,20 +21,25 @@ def init_sample_papers():
         paper_list = json.load(f)
 
     for item in paper_list:
-        p = Paper(
-            title=item["title"],
-            conference=item["conference"],
-            year=item["year"],
-            paper_id=item["paper_id"],
-            authors=item["authors"],
-            abstract=item["abstract"],
-            author_keywords=item["author_keywords"],
-            extracted_keywords=item["extracted_keywords"],
-            source_url=item["source_url"],
-            data_source=item["data_source"]
-        )
-        db.session.add(p)
-    db.session.commit()
+        # 字段和online_papers表严格对齐
+        db.execute("""
+            INSERT OR IGNORE INTO online_papers
+            (title, normalized_title, abstract, authors, conference, year,
+             paper_number, original_url, keywords)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            item["title"],
+            item["normalized_title"],
+            item["abstract"],
+            item["authors"],
+            item["conference"],
+            item["year"],
+            item["paper_number"],
+            item["original_url"],
+            item["keywords"]
+        ))
+    db.commit()
+    db.close()
     print(f"✅ 成功载入 {len(paper_list)} 篇样例论文")
 
 
