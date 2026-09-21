@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}在线查询结果{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div>
+    <p class="eyebrow">ONLINE LOOKUP</p>
+    <h1>{% if result.ok %}在线查询结果{% else %}在线查询未找到结果{% endif %}</h1>
+    <p class="muted">查询标题：{{ query or '未填写' }}</p>
+  </div>
+</div>
+{% if result.ok %}
+<p class="notice">{{ result.message }}</p>
+{% for paper in result.papers %}
+<section class="panel prose">
+  <h2>{{ paper.title }}</h2>
+  <p><strong>会议/年份：</strong>{{ paper.conference or '暂无' }} / {{ paper.year or '暂无' }}</p>
+  <p><strong>编号：</strong>{{ paper.paper_number or '暂无' }}</p>
+  <p><strong>作者：</strong>{{ paper.authors or '暂无' }}</p>
+  <h3>摘要</h3>
+  <p>{{ paper.abstract or '暂无摘要' }}</p>
+  <p><strong>关键词：</strong>{{ paper.keywords or '暂无关键词' }}</p>
+  {% if paper.original_url %}<p><a href="{{ paper.original_url }}" target="_blank" rel="noopener">打开原文链接</a></p>{% endif %}
+</section>
+{% endfor %}
+<p><a href="{{ url_for('papers.list_page') }}">返回论文管理</a></p>
+{% else %}
+<section class="empty">
+  <p>{{ result.message }}</p>
+  <form class="inline-form" method="get" action="{{ url_for('papers.online_lookup') }}">
+    <label>重试标题<input name="q" value="{{ query }}" required></label>
+    <button>重试</button>
+  </form>
+  <a href="{{ url_for('papers.list_page') }}">返回论文管理</a>
+</section>
+{% endif %}
+{% endblock %}

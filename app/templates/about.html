@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}统计说明{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">METHOD NOTES</p><h1>统计与数据说明</h1></div></div>
+<section class="panel prose">
+  <h2>统计口径</h2>
+  <p>当前 Top 10 以论文覆盖数排序，覆盖率为覆盖该关键词的有效论文数除以当前范围有效论文数。趋势页使用同一口径的覆盖率。</p>
+  <h2>关键词处理</h2>
+  <p>作者关键词与自动抽取关键词分开保存；系统进行停用词过滤、缩写归一化和基础词形清洗。自动抽取结果只能作为待核验线索。</p>
+  <h2>数据状态</h2>
+  <p>未举办表示会议在该年没有举办；未采集表示会议举办但本地没有数据；零出现表示已有有效论文但关键词覆盖数为 0。</p>
+  <h2>在线查询</h2>
+  <p>在线查询从项目的 online_papers 索引表按标题精确或模糊匹配，结果包含摘要、关键词和原文链接；未命中时显示失败原因和重试入口。</p>
+</section>
+{% endblock %}
