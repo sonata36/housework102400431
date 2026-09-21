@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}论文导入{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">IMPORT</p><h1>论文导入</h1></div></div>
+<form class="form panel" method="post">
+  <div class="form-grid">
+    <label>会议<select name="conference"><option>CVPR</option><option>ICCV</option><option>ECCV</option></select></label>
+    <label>年份<input type="number" name="year" value="2024"></label>
+  </div>
+  <label>导入模式<select name="mode"><option value="single">单篇标题</option><option value="batch">批量标题（每行一条）</option></select></label>
+  <label>单篇标题<input name="title" placeholder="输入一篇论文标题"></label>
+  <label>批量标题<textarea name="titles" placeholder="每行输入一个标题"></textarea></label>
+  <button>开始处理</button>
+</form>
+<section class="panel">
+  <h2>从 CVF Open Access 抓取</h2>
+  <p class="notice">输入 CVPR、ICCV 或 ECCV 论文的完整标题。系统会访问 CVF Open Access，解析标题、作者、摘要和原文链接，并在成功后保存到本地论文库。</p>
+  <form class="inline-form" method="post">
+    <input type="hidden" name="mode" value="cvf">
+    <label>论文标题<input name="title" required placeholder="例如 YOLO-World: Real-Time Open-Vocabulary Object Detection"></label>
+    <button>抓取并保存</button>
+  </form>
+</section>
+{% if results is not none %}
+<section class="panel">
+  <h2>本批次结果</h2>
+  <p class="notice">逐条处理完成；结果已经按条保存，成功项不会被失败项阻止。缺少摘要或原文链接的项目会标为“字段缺失”。</p>
+  <table><thead><tr><th>标题</th><th>状态</th><th>说明</th></tr></thead><tbody>
+  {% for item in results %}<tr><td>{{ item.title or '空标题' }}</td><td>{{ item.status }}</td><td>{{ item.message or item.paper_id or '' }}</td></tr>{% endfor %}
+  </tbody></table>
+</section>
+{% endif %}
+{% endblock %}

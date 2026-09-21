@@ -1,0 +1,2 @@
+# Backend dependency. ECharts is loaded by the browser from a CDN in this round.
+Flask>=3.1.2,<3.2
